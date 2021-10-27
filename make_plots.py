@@ -172,12 +172,12 @@ def plot_results(PINN_list):
         axs[1, 2].set_xlim(-1, 1)
         axs[1, 2].set_ylim(-1, 1)
 
-        real_diff = axs[2, 0].tricontourf(triang, uR - UR, 20, cmap='bwr', levels=100)
+        real_diff = axs[2, 0].tricontourf(triang, np.abs(uR - UR), 20, cmap='Reds', levels=100)
         divider = make_axes_locatable(axs[2, 0])
         cax = divider.append_axes('right', size='5%', pad=0.05)
         fig.colorbar(real_diff, cax=cax, orientation='vertical')
 
-        im_diff = axs[2, 1].tricontourf(triang, uI - UI, 20, cmap='bwr', levels=100)
+        im_diff = axs[2, 1].tricontourf(triang, np.abs(uI - UI), 20, cmap='Reds', levels=100)
         divider = make_axes_locatable(axs[2, 1])
         cax = divider.append_axes('right', size='5%', pad=0.05)
         fig.colorbar(im_diff, cax=cax, orientation='vertical')
