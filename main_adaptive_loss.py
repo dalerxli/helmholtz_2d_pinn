@@ -2,29 +2,8 @@ import tensorflow as tf
 from tensorflow import keras
 import numpy as np
 from models_2d import mapping_model
-from loss_funs import loss_dipole, loss_piston, get_training_points
+from loss_funs import loss_piston_adapt, get_training_points
 from make_plots import plot_results
-
-
-def loss_piston_adapt(k, uR, uI, uR_X, uI_X, uR_XX, uI_XX,
-                      uR_b, uI_b, uR_X_b, uI_X_b, X_b,
-                      uR_b0, uI_b0, X_b0,
-                      fR=0, fI=0):
-    loss_int = tf.reduce_mean(tf.square((uR_XX[:, 0:1] + uR_XX[:, 1:2]) / k ** 2 + uR - fR)) \
-               + tf.reduce_mean(tf.square((uI_XX[:, 0:1] + uI_XX[:, 1:2]) / k ** 2 + uI - fI))
-
-    loss_b1_r = tf.reduce_mean(tf.square((uR_X_b[:, 0:1] * X_b[:, 0:1] + uR_X_b[:, 1:2] * X_b[:, 1:2]) / k + uI_b))
-    loss_b1_i = tf.reduce_mean(tf.square((uI_X_b[:, 0:1] * X_b[:, 0:1] + uI_X_b[:, 1:2] * X_b[:, 1:2]) / k - uR_b))
-
-    T = tf.math.atan2(X_b0[:, 1:2], X_b0[:, 0:1])
-    BC = np.where(np.abs(T) < np.pi / 6, 1, 0)
-
-    loss_b0_r = tf.reduce_mean(tf.square(uR_b0 - BC))
-    loss_b0_i = tf.reduce_mean(tf.square(uI_b0))
-
-    loss_b = [loss_b1_r, loss_b1_i, loss_b0_r, loss_b0_i]
-
-    return loss_int, loss_b
 
 
 # Model

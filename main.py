@@ -14,9 +14,9 @@ depth = 5
 optimizer = keras.optimizers.Adam(learning_rate=1e-3)
 
 TOL = 5e-5
-max_epochs = 1000
+max_epochs = 50
 
-K = 2 * np.pi * np.array([2])
+K = 2 * np.pi * np.array([2, 4])
 r0 = 0.1
 X, X_b, X_b0 = get_training_points(N=10000, N_b=1000, r0=r0)
 
@@ -31,9 +31,9 @@ for k in K:
     print(' ')
 
     history_loss_int = np.array([])
-    history_loss_b   = np.array([])
-    history_loss_b0  = np.array([])
-    history_loss     = np.array([])
+    history_loss_b = np.array([])
+    history_loss_b0 = np.array([])
+    history_loss = np.array([])
 
     loss = TOL + 1
     epoch = 0
@@ -75,43 +75,13 @@ for k in K:
             uI_yy = g2.gradient(uI_y, X)[:, 1:2]
             uI_XX = tf.concat([uI_xx, uI_yy], axis=1)
 
-            loss_int, loss_b = loss_piston(k, uR, uI, uR_X, uI_X, uR_XX, uI_XX,
-                                           uR_b, uI_b, uR_X_b, uI_X_b, X_b,
-                                           uR_b0, uI_b0, X_b0)
-
-            loss = loss_int
-            for loss_b_i in loss_b:
-
-                with g1.stop_recording():
-                    # Gradients Storage
-                    grad_int = []
-                    grad_b_i = []
-                    for i in range(len(model_pinn.layers) - 1):
-                        print(i)
-                        grad_int.append(g1.gradient(loss_int, model_pinn.trainable_variables[i])[0])
-                        grad_b_i.append(g1.gradient(loss_b_i, model_pinn.trainable_variables[i])[0])
-
-                    max_grad_int_list = []
-                    mean_grad_b_i_list = []
-                    max_grad_b_i_list = []
-
-                    for i in range(len(model_pinn.layers) - 1):
-                        max_grad_int_list.append(tf.reduce_max(tf.abs(grad_int[i])))
-                        mean_grad_b_i_list.append(tf.reduce_mean(tf.abs(grad_b_i[i])))
-                        max_grad_b_i_list.append(tf.reduce_max(tf.abs(grad_b_i[i])))
-
-                    max_grad_int = tf.reduce_max(tf.stack(max_grad_int_list))
-                    mean_grad_b_i = tf.reduce_mean(tf.stack(mean_grad_b_i_list))
-                    max_grad_b_i = tf.reduce_max(tf.stack(max_grad_b_i_list))
-
-                    lambda_i = max_grad_int / mean_grad_b_i
-
-                print(lambda_i)
-
-                loss += lambda_i * loss_b_i
+            loss_int, loss_b, loss_b0, loss = loss_piston(k, uR, uI, uR_X, uI_X, uR_XX, uI_XX,
+                                                          uR_b, uI_b, uR_X_b, uI_X_b, X_b,
+                                                          uR_b0, uI_b0, X_b0,
+                                                          fR=0, fI=0,
+                                                          C0=1., C1=1., C2=0.1, C3=0.1, C4=0.1, C5=0.1)
 
         grads = g1.gradient(loss, model_pinn.trainable_variables)
-
         optimizer.apply_gradients(zip(grads, model_pinn.trainable_variables))
 
         history_loss_int = np.append(history_loss_int, loss_int.numpy())
@@ -128,19 +98,19 @@ for k in K:
     uR = u[:, 0]
     uI = u[:, 1]
 
-    PINN_dict = {'k' : k,
-                 'X' : X,
-                 'r0' : r0,
-                 'uR' : uR,
-                 'uI' : uI,
-                 'history_loss' : history_loss,
-                 'history_loss_int' : history_loss_int,
-                 'history_loss_b' : history_loss_b,
-                 'history_loss_b0' : history_loss_b0}
+    PINN_dict = {'k': k,
+                 'X': X,
+                 'r0': r0,
+                 'uR': uR,
+                 'uI': uI,
+                 'history_loss': history_loss,
+                 'history_loss_int': history_loss_int,
+                 'history_loss_b': history_loss_b,
+                 'history_loss_b0': history_loss_b0}
 
     PINN_list.append(PINN_dict)
     # Save model and history
     # model_pinn.save("model_dipole_k={}pi".format(round(k / np.pi)))
 
-# np.save("PINN_list_piston_k", PINN_list)
+np.save("PINN_list_piston", PINN_list)
 plot_results(PINN_list)
